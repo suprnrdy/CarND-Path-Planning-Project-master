@@ -18,31 +18,52 @@
  * Initializes Vehicle
  */
 
+
+
+/*
+ TODO:
+ 1) Define States
+ 2) Determine Next possible states
+ 3) Choose Next State
+    a) Go through list of possible states and determine cost of existing state
+    b) Choose best next state
+ 4) Define trajectories
+ 5) exectue trajectory based on best next state
+*/
+
 Vehicle::Vehicle(){}
 
-Vehicle::Vehicle(int lane, float s, float v, float a, string state) {
-  
-//  this->lane = lane;
-//  this->s = s;
-//  this->v = v;
-//  this->a = a;
-//  this->state = state;
-//  max_acceleration = -1;
-  
-}
+//Vehicle::Vehicle(int lane, float s, float v, float a, string state) {
+//
+////  this->lane = lane;
+////  this->s = s;
+////  this->v = v;
+////  this->a = a;
+////  this->state = state;
+////  max_acceleration = -1;
+//
+//}
 
 Vehicle::~Vehicle() {}
 
-void Vehicle::update(double x, double y, double s, double d, double yaw, vector<double> previous_path_x, vector<double> previous_path_y, double end_path_s, double end_path_d) {
-  this->x = x;
-  this->y = y;
-  this->s = s;
-  this->d = d;
-  this->yaw = yaw;
-  this->previous_path_x = previous_path_x;
-  this->previous_path_y = previous_path_y;
-  this->end_path_s = end_path_s;
-  this->end_path_d = end_path_d;
+//void Vehicle::update(double x, double y, double s, double d, double yaw, double speed, vector<double> previous_path_x, vector<double> previous_path_y, double end_path_s, double end_path_d) {
+void Vehicle::update(json j) {
+
+  // Main car's localization Data
+  this->x = j[1]["x"];
+  this->y = j[1]["y"];
+  this->s = j[1]["s"];
+  this->d = j[1]["d"];
+  this->yaw = j[1]["yaw"];
+  this->speed = j[1]["speed"];
+  // Previous path data given to the Planner
+  vector<double> tx = j[1]["previous_path_x"];
+  vector<double> ty = j[1]["previous_path_y"];
+  this->previous_path_x = tx;
+  this->previous_path_y = ty;
+  // Previous path's end s and d values
+  this->end_path_s = j[1]["end_path_s"];
+  this->end_path_d = j[1]["end_path_d"];
   
 }
 
@@ -51,19 +72,19 @@ vector<Vehicle> Vehicle::choose_next_state(map<int, vector<Vehicle>> predictions
    Here you can implement the transition_function code from the Behavior Planning Pseudocode
    classroom concept. Your goal will be to return the best (lowest cost) trajectory corresponding
    to the next state.
-   
+
    INPUT: A predictions map. This is a map of vehicle id keys with predicted
    vehicle trajectories as values. Trajectories are a vector of Vehicle objects representing
    the vehicle at the current timestep and one timestep in the future.
    OUTPUT: The the best (lowest cost) trajectory corresponding to the next ego vehicle state.
-   
+
    */
   vector<string> states = successor_states();
   float cost;
   vector<float> costs;
   vector<string> final_states;
   vector<vector<Vehicle>> final_trajectories;
-  
+
   for (vector<string>::iterator it = states.begin(); it != states.end(); ++it) {
     vector<Vehicle> trajectory = generate_trajectory(*it, predictions);
     if (trajectory.size() != 0) {
@@ -72,7 +93,7 @@ vector<Vehicle> Vehicle::choose_next_state(map<int, vector<Vehicle>> predictions
       final_trajectories.push_back(trajectory);
     }
   }
-  
+
   vector<float>::iterator best_cost = min_element(begin(costs), end(costs));
   int best_idx = distance(begin(costs), best_cost);
   return final_trajectories[best_idx];
@@ -134,9 +155,9 @@ vector<float> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions, int
   float new_accel;
   Vehicle vehicle_ahead;
   Vehicle vehicle_behind;
-  
+
   if (get_vehicle_ahead(predictions, lane, vehicle_ahead)) {
-    
+
     if (get_vehicle_behind(predictions, lane, vehicle_behind)) {
       new_velocity = vehicle_ahead.v; //must travel at the speed of traffic, regardless of preferred buffer
     } else {
@@ -146,11 +167,11 @@ vector<float> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions, int
   } else {
     new_velocity = min(max_velocity_accel_limit, this->target_speed);
   }
-  
+
   new_accel = new_velocity - this->v; //Equation: (v_1 - v_0)/t = acceleration
   new_position = this->s + new_velocity + new_accel / 2.0;
   return{new_position, new_velocity, new_accel};
-  
+
 }
 
 vector<Vehicle> Vehicle::constant_speed_trajectory() {
@@ -187,13 +208,13 @@ vector<Vehicle> Vehicle::prep_lane_change_trajectory(string state, map<int, vect
   int new_lane = this->lane + lane_direction[state];
   vector<Vehicle> trajectory = {Vehicle(this->lane, this->s, this->v, this->a, this->state)};
   vector<float> curr_lane_new_kinematics = get_kinematics(predictions, this->lane);
-  
+
   if (get_vehicle_behind(predictions, this->lane, vehicle_behind)) {
     //Keep speed of current lane so as not to collide with car behind.
     new_s = curr_lane_new_kinematics[0];
     new_v = curr_lane_new_kinematics[1];
     new_a = curr_lane_new_kinematics[2];
-    
+
   } else {
     vector<float> best_kinematics;
     vector<float> next_lane_new_kinematics = get_kinematics(predictions, new_lane);
@@ -207,7 +228,7 @@ vector<Vehicle> Vehicle::prep_lane_change_trajectory(string state, map<int, vect
     new_v = best_kinematics[1];
     new_a = best_kinematics[2];
   }
-  
+
   trajectory.push_back(Vehicle(this->lane, new_s, new_v, new_a, state));
   return trajectory;
 }
@@ -294,7 +315,7 @@ vector<Vehicle> Vehicle::generate_predictions(int horizon) {
     predictions.push_back(Vehicle(this->lane, next_s, next_v, 0));
   }
   return predictions;
-  
+
 }
 
 void Vehicle::realize_next_state(vector<Vehicle> trajectory) {
@@ -320,3 +341,4 @@ void Vehicle::configure(vector<int> road_data) {
   goal_lane = road_data[3];
   max_acceleration = road_data[4];
 }
+

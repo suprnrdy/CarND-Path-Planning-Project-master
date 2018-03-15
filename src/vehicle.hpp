@@ -13,8 +13,11 @@
 #include <vector>
 #include <map>
 #include <string>
+#include "json.hpp"
 
 using namespace std;
+// for convenience
+using json = nlohmann::json;
 
 class Vehicle {
 public:
@@ -60,15 +63,17 @@ public:
    * Constructor
    */
   Vehicle();
-  Vehicle(int lane, float s, float v, float a, string state="CS");
+//  Vehicle(int lane, float s, float v, float a, string state="CS");
   
   /**
    * Destructor
    */
   virtual ~Vehicle();
   
-  void update(double x, double y, double s, double d, double yaw, vector<double> previous_path_x, vector<double> previous_path_y, double end_path_s, double end_path_d);
+//  void update(double x, double y, double s, double d, double yaw, double speed, vector<double> previous_path_x, vector<double> previous_path_y, double end_path_s, double end_path_d);
+  void update(json j);
   
+  /*
   vector<Vehicle> choose_next_state(map<int, vector<Vehicle>> predictions);
   
   vector<string> successor_states();
@@ -98,6 +103,7 @@ public:
   void realize_next_state(vector<Vehicle> trajectory);
   
   void configure(vector<int> road_data);
+  */
   
   
   

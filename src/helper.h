@@ -8,8 +8,9 @@
 #ifndef helper_h
 #define helper_h
 
-// for convenience
-using json = nlohmann::json;
+#include <math.h>
+
+using namespace std;
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
