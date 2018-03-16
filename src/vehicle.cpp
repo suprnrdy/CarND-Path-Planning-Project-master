@@ -23,12 +23,13 @@
 /*
  TODO:
  1) Define States
- 2) Determine Next possible states
- 3) Choose Next State
+ 2) Generate Predictions
+ 3) Determine Next possible states
+ 4) Choose Next State
     a) Go through list of possible states and determine cost of existing state
     b) Choose best next state
- 4) Define trajectories
- 5) exectue trajectory based on best next state
+ 5) Define trajectories
+ 6) exectue trajectory based on best next state
 */
 
 Vehicle::Vehicle(){}

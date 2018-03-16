@@ -111,6 +111,10 @@ int main() {
           bool too_close = false;
 
           //find ref_v to use
+          // This checks all other cars
+          
+          // sensor_fusion = [count][id, x, y, vx, vy, s, d]
+          // Predictions = 
           for(int i = 0; i < sensor_fusion.size(); i++) {
             //car is in my lane
             float d = sensor_fusion[i][6];
@@ -120,11 +124,12 @@ int main() {
               double check_speed = sqrt(vx*vx+vy*vy);
               double check_car_s = sensor_fusion[i][5];
 
+              // Prediction
               check_car_s += ((double)prev_size*0.02*check_speed); // if using previous points can project s value out
               //check s values greater than mine and s gap
+              // If car is ahead of ego car, but gap is less than 30 points, we're too close
               if((check_car_s > car.s) && ( (check_car_s - car.s) < 30)) {
-                // do some logic here, lower reference velocity so we don't crash into the car in front of us,
-                // could also flag to try to change lanes.
+//                Lane change
 //                ref_vel = check_speed;
                 too_close = true;
                 if(lane > 0) {

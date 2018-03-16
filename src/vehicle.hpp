@@ -69,14 +69,15 @@ public:
    * Destructor
    */
   virtual ~Vehicle();
+
   
-//  void update(double x, double y, double s, double d, double yaw, double speed, vector<double> previous_path_x, vector<double> previous_path_y, double end_path_s, double end_path_d);
   void update(json j);
+  vector<string> successor_states();
   
   /*
   vector<Vehicle> choose_next_state(map<int, vector<Vehicle>> predictions);
   
-  vector<string> successor_states();
+  
   
   vector<Vehicle> generate_trajectory(string state, map<int, vector<Vehicle>> predictions);
   
