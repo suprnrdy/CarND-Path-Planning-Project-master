@@ -11,6 +11,7 @@
 #include "spline.h"
 #include "helper.h"
 #include "vehicle.hpp"
+#include "road.hpp"
 
 using namespace std;
 
@@ -51,14 +52,18 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
   
-  // Our Vehicle
-  Vehicle ego();
   // start in lane 1;
   int lane = 1;
   // Have a reference velocity to target
   double ref_vel = 0; //mpg
   
-  h.onMessage([&ref_vel,&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy,&lane](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+  // Configure our road
+  Road road = Road(SPEED_LIMIT, NUM_LANES);
+  vector<int> ego_config = {SPEED_LIMIT,NUM_LANES,30,lane,MAX_ACCEL};
+  road.add_ego(lane, 0, ego_config);
+  bool initialized = false;
+  
+  h.onMessage([&initialized, &road,&ref_vel,&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy,&lane](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -75,8 +80,11 @@ int main() {
         string event = j[0].get<string>();
         
         if (event == "telemetry") {
-          // j[1] is the data JSON object
           
+          /////////////////////////////////////////////////
+          // Parse JSON data
+          // j[1] is the data JSON object
+          /////////////////////////////////////////////////
         	// Main car's localization Data
           double car_x = j[1]["x"];
           double car_y = j[1]["y"];
@@ -94,47 +102,118 @@ int main() {
 
           // Sensor Fusion Data, a list of all other cars on the same side of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
-        
+          
+          // Update our Ego on the road
+          int car_lane = car_d / 4;
+          double car_accel = 0.224;
+          if(initialized) {
+            Vehicle prev_car = road.get_vehicle(-1)->second;
+            car_accel = (car_speed - prev_car.v)/0.02;
+          }
+          
+          initialized = true;
+          
+//          cout << "Acceleration: " << car_accel << endl;
+          road.update_ego(car_lane, car_s, car_accel, car_speed);
+          Vehicle currentv = road.get_vehicle(road.ego_key)->second;
+          cout << "Current State: " << currentv.state << " lane: " << currentv.lane << " speed: " << currentv.v << " acc: " << currentv.a << endl;
+          
+          /////////////////////////////////////////////////
+          // Update the traffic on the road
+          // [ id, x, y, vx, vy, s, d]
+          /////////////////////////////////////////////////
+          
+          map<int, Vehicle> past_vehicles = road.get_vehicles();
+          
+          //Go through each vehicle, derive V and A, then update the Road
+          for(int i = 0; i < sensor_fusion.size(); i++) {
+            int vd = sensor_fusion[i][6];
+            // If the obstacles are all in the same side of the road as us
+            if(vd >= 0) {
+              int vid = sensor_fusion[i][0];
+              double vs = sensor_fusion[i][5];
+              double vx = sensor_fusion[i][3];
+              double vy = sensor_fusion[i][4];
+              double vspeed = sqrt(vx*vx+vy*vy);
+              int vlane = vd / 4;
+              // check if vehicle ID exists in list.
+              // if it does: calculate Acceleration and update it.
+              // if it does not: update function will automatically add it.
+              double vaccel = 0;
+              map<int, Vehicle>::iterator iter = past_vehicles.find(vid);
+              if(iter != past_vehicles.end()) {
+                // Vehicle exists, update it.
+                // Calculate Acceleration
+                vaccel = (vspeed - iter->second.v)/0.02; //Calculates acceleration = difference in speed over a span of 20 mSeconds
+              }
+              Vehicle v = Vehicle(vlane, vs, vspeed, vaccel);
+              road.update_traffic(vid, v);
+            }
+          }
+          
+          /////////////////////////////////////////////////
+          // Trajectory Planning
+          /////////////////////////////////////////////////
+          
+          // from the road update() function we get back the next ideal state
+          // Which we can then pull the target lane, velocity and acceleration from.
+          Vehicle target = road.update();
+          
           int prev_size = previous_path_x.size();
           
           if(prev_size > 0) {
             car_s = end_path_s;
           }
           
-          bool too_close = false;
+//          bool too_close = false;
+//
+//          //find ref_v to use
+//          for(int i = 0; i < sensor_fusion.size(); i++) {
+//            //car is in my lane
+//            float d = sensor_fusion[i][6];
+//            if(d < (2 + 4 * lane +2) && d > (2 + 4*lane - 2)) {
+//              double vx = sensor_fusion[i][3];
+//              double vy = sensor_fusion[i][4];
+//              double check_speed = sqrt(vx*vx+vy*vy);
+//              double check_car_s = sensor_fusion[i][5];
+//
+//              check_car_s += ((double)prev_size*0.02*check_speed); // if using previous points can project s value out
+//              //check s values greater than mine and s gap
+//              if((check_car_s > car_s) && ( (check_car_s - car_s) < 30)) {
+//                // do some logic here, lower reference velocity so we don't crash into the car in front of us,
+//                // could also flag to try to change lanes.
+////                ref_vel = check_speed;
+//                too_close = true;
+//                if(lane > 0) {
+//                  lane = 0;
+//                }
+//
+//              }
+//            }
+//          }
+//
+//          // This works if there are cars or no cars in front of it.  If you're starting from 0 Velocity, it will
+//          // increase slowly.
+//          if(too_close) {
+//            ref_vel -= 0.224;
+//          } else if (ref_vel < 49.5) {
+//            ref_vel += 0.224;
+//          }
           
-          //find ref_v to use
-          for(int i = 0; i < sensor_fusion.size(); i++) {
-            //car is in my lane
-            float d = sensor_fusion[i][6];
-            if(d < (2 + 4 * lane +2) && d > (2 + 4*lane - 2)) {
-              double vx = sensor_fusion[i][3];
-              double vy = sensor_fusion[i][4];
-              double check_speed = sqrt(vx*vx+vy*vy);
-              double check_car_s = sensor_fusion[i][5];
-              
-              check_car_s += ((double)prev_size*0.02*check_speed); // if using previous points can project s value out
-              //check s values greater than mine and s gap
-              if((check_car_s > car_s) && ( (check_car_s - car_s) < 30)) {
-                // do some logic here, lower reference velocity so we don't crash into the car in front of us,
-                // could also flag to try to change lanes.
-//                ref_vel = check_speed;
-                too_close = true;
-                if(lane > 0) {
-                  lane = 0;
-                }
-                
-              }
-            }
+          // Increase velocity until we are in range of our target velocity
+          if(ref_vel < target.v + 1 || ref_vel > target.v -1 ) {
+            ref_vel += target.a;
+          } else {
+            ref_vel = target.v;
           }
           
-          // This works if there are cars or no cars in front of it.  If you're starting from 0 Velocity, it will
-          // increase slowly.
-          if(too_close) {
-            ref_vel -= 0.224;
-          } else if (ref_vel < 49.5) {
-            ref_vel += 0.224;
+          cout << "Ref_Vel: " << ref_vel << " Target V = " << target.v << " Target A = " << target.a << endl;
+          
+          if(ref_vel > 49.5) {
+            ref_vel = 48;
           }
+          
+          lane = target.lane;
           
           // Create a list of widely spaced (x,y) waypoints, evenly spaced at 30m
           // Later we will interpolate them with a spilne and fill in the gaps

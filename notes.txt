@@ -1,0 +1,3 @@
+Get_Vehicle-Ahead is returning the Ego car.  Why?
+  - Fixed, the differences between the ego and predicted ego was slightly off, so ego was counted in.  Also removed ego from predictions
+We are getting weird Velocity numbers (negative) right away

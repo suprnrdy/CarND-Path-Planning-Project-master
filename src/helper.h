@@ -8,6 +8,19 @@
 #ifndef helper_h
 #define helper_h
 
+
+using namespace std;
+
+//Variables
+//impacts default behavior for most states
+int SPEED_LIMIT = 50; //MPH
+int NUM_LANES = 3;
+// At each timestep, ego can set acceleration to value between
+// -MAX_ACCEL and MAX_ACCEL
+int MAX_ACCEL = 10;
+
+
+
 // for convenience
 using json = nlohmann::json;
 
