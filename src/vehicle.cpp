@@ -75,20 +75,20 @@ vector<string> Vehicle::successor_states() {
   vector<string> states;
   states.push_back("KL");
   string state = this->state;
-//  if(state.compare("KL") == 0) {
-//    states.push_back("PLCL");
-//    states.push_back("PLCR");
-//  } else if (state.compare("PLCL") == 0) {
-//    if (lane != 0) {
-//      states.push_back("PLCL");
-//      states.push_back("LCL");
-//    }
-//  } else if (state.compare("PLCR") == 0) {
-//    if (lane != lanes_available - 1) {
-//      states.push_back("PLCR");
-//      states.push_back("LCR");
-//    }
-//  }
+  if(state.compare("KL") == 0) {
+    states.push_back("PLCL");
+    states.push_back("PLCR");
+  } else if (state.compare("PLCL") == 0) {
+    if (lane != 0) {
+      states.push_back("PLCL");
+      states.push_back("LCL");
+    }
+  } else if (state.compare("PLCR") == 0) {
+    if (lane != lanes_available - 1) {
+      states.push_back("PLCR");
+      states.push_back("LCR");
+    }
+  }
   //If state is "LCL" or "LCR", then just return "KL"
   return states;
 }
@@ -103,11 +103,11 @@ vector<Vehicle> Vehicle::generate_trajectory(string state, map<int, vector<Vehic
   } else if (state.compare("KL") == 0) {
     trajectory = keep_lane_trajectory(predictions);
   }
-//  else if (state.compare("LCL") == 0 || state.compare("LCR") == 0) {
-//    trajectory = lane_change_trajectory(state, predictions);
-//  } else if (state.compare("PLCL") == 0 || state.compare("PLCR") == 0) {
-//    trajectory = prep_lane_change_trajectory(state, predictions);
-//  }
+  else if (state.compare("LCL") == 0 || state.compare("LCR") == 0) {
+    trajectory = lane_change_trajectory(state, predictions);
+  } else if (state.compare("PLCL") == 0 || state.compare("PLCR") == 0) {
+    trajectory = prep_lane_change_trajectory(state, predictions);
+  }
   return trajectory;
 }
 
@@ -143,7 +143,7 @@ vector<double> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions, in
   // Does not slow down behind car.
   // Speeds up too fast?  Ttoo much jerK?
   //
-  new_accel = (new_velocity - this->v)/0.02; //Equation: (v_1 - v_0)/t = acceleration
+  new_accel = (new_velocity - this->v); //Equation: (v_1 - v_0)/t = acceleration
   if(new_accel > 10) new_accel = 10;
   if(new_accel < -10) new_accel = -10;
   

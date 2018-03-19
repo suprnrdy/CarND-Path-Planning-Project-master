@@ -201,8 +201,11 @@ int main() {
 //          }
           
           // Increase velocity until we are in range of our target velocity
-          if(ref_vel < target.v + 1 || ref_vel > target.v -1 ) {
-            ref_vel += target.a;
+          if(ref_vel < target.v + 0.5 || ref_vel > target.v - 0.5 ) {
+            if(ref_vel < target.v - 0.3)
+              ref_vel += 0.33;
+            if(ref_vel > target.v + 0.3)
+              ref_vel -= 0.224;
           } else {
             ref_vel = target.v;
           }
