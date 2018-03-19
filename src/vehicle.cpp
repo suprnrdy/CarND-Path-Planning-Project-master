@@ -111,6 +111,50 @@ vector<Vehicle> Vehicle::generate_trajectory(string state, map<int, vector<Vehic
   return trajectory;
 }
 
+//vector<double> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions, int lane) {
+//  /*
+//   Gets next timestep kinematics (position, velocity, acceleration)
+//   for a given lane. Tries to choose the maximum velocity and acceleration,
+//   given other vehicle positions and accel/velocity constraints.
+//   */
+//  double max_velocity_accel_limit = this->v + this->a * 0.02;
+//  double new_position;
+//  double new_velocity;
+//  double new_accel;
+//  Vehicle vehicle_ahead;
+//  Vehicle vehicle_behind;
+//
+//  if (get_vehicle_ahead(predictions, lane, vehicle_ahead)) {
+//    cout << "Vehicle ahead" << endl;
+//    if (get_vehicle_behind(predictions, lane, vehicle_behind)) {
+//      cout << "Vehicle behind" << endl;
+//      new_velocity = vehicle_ahead.v; //must travel at the speed of traffic, regardless of preferred buffer
+//    } else {
+//      new_velocity = vehicle_ahead.v;
+////      new_velocity = min(min(max_velocity_in_front, max_velocity_accel_limit), this->target_speed);
+//    }
+//  } else {
+//    new_velocity = min(max_velocity_accel_limit, this->target_speed);
+//
+//  }
+//
+//  ////////  Edit this?? The speed is not right.
+//  // Does not slow down behind car.
+//  // Speeds up too fast?  Ttoo much jerK?
+//  //
+//  new_accel = (new_velocity - this->v)*0.02; //Equation: (v_1 - v_0)/t = acceleration
+//  if(new_accel == 0) new_accel = 0.3;
+//  cout << "New Velocity: " << new_velocity << " New Accel:: " << new_accel << endl;
+//  if(new_accel > 10) new_accel = 10;
+//  if(new_accel < -10) new_accel = -10;
+//
+////  cout << "Target Velocity = " << new_velocity << " Acc: " << new_accel << endl;
+//
+//  new_position = this->s + new_velocity + new_accel * 0.02; // We don't do anything with new position (right now)
+//  return{new_position, new_velocity, new_accel};
+//
+//}
+
 vector<double> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions, int lane) {
   /*
    Gets next timestep kinematics (position, velocity, acceleration)
@@ -118,7 +162,6 @@ vector<double> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions, in
    given other vehicle positions and accel/velocity constraints.
    */
   double max_velocity_accel_limit = this->max_acceleration + this->v;
-  if(max_velocity_accel_limit > 50) max_velocity_accel_limit = 50;
   double new_position;
   double new_velocity;
   double new_accel;
@@ -126,31 +169,19 @@ vector<double> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions, in
   Vehicle vehicle_behind;
   
   if (get_vehicle_ahead(predictions, lane, vehicle_ahead)) {
-    cout << "Vehicle ahead" << endl;
+    
     if (get_vehicle_behind(predictions, lane, vehicle_behind)) {
-      cout << "Vehicle behind" << endl;
       new_velocity = vehicle_ahead.v; //must travel at the speed of traffic, regardless of preferred buffer
     } else {
-      new_velocity = vehicle_ahead.v;
-//      new_velocity = min(min(max_velocity_in_front, max_velocity_accel_limit), this->target_speed);
+      double max_velocity_in_front = (vehicle_ahead.s - this->s - this->preferred_buffer) + vehicle_ahead.v - 0.02 * (this->a);
+      new_velocity = min(min(max_velocity_in_front, max_velocity_accel_limit), this->target_speed);
     }
   } else {
     new_velocity = min(max_velocity_accel_limit, this->target_speed);
-    
   }
   
-  ////////  Edit this?? The speed is not right.
-  // Does not slow down behind car.
-  // Speeds up too fast?  Ttoo much jerK?
-  //
-  new_accel = (new_velocity - this->v); //Equation: (v_1 - v_0)/t = acceleration
-  if(new_accel > 10) new_accel = 10;
-  if(new_accel < -10) new_accel = -10;
-  
-//  cout << "Target Velocity = " << new_velocity << " Acc: " << new_accel << endl;
-  
-  
-  new_position = this->s + new_velocity + new_accel / 2.0;
+  new_accel = (new_velocity - this->v)/0.02; //Equation: (v_1 - v_0)/t = acceleration
+  new_position = this->s + new_velocity + new_accel * 0.02;
   return{new_position, new_velocity, new_accel};
   
 }
@@ -311,7 +342,7 @@ void Vehicle::realize_next_state(vector<Vehicle> trajectory) {
   this->v = next_state.v;
   this->a = next_state.a;
   
-  cout << ">>> Next State: " << this->state << " lane: " << this->lane << " speed: " << this->v << " acc: " << this->a << endl;
+//  cout << ">>> Next State: " << this->state << " lane: " << this->lane << " speed: " << this->v << " acc: " << this->a << endl;
 }
 
 void Vehicle::configure(vector<int> road_data) {

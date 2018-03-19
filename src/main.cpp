@@ -61,9 +61,9 @@ int main() {
   Road road = Road(SPEED_LIMIT, NUM_LANES);
   vector<int> ego_config = {SPEED_LIMIT,NUM_LANES,30,lane,MAX_ACCEL};
   road.add_ego(lane, 0, ego_config);
-  bool initialized = false;
+  double prev_speed = 0;
   
-  h.onMessage([&initialized, &road,&ref_vel,&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy,&lane](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+  h.onMessage([&prev_speed, &road,&ref_vel,&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy,&lane](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -103,20 +103,31 @@ int main() {
           // Sensor Fusion Data, a list of all other cars on the same side of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
           
+//          vector<double> car_data = {car_x, car_y, car_s, car_d, car_yaw, car_speed};
+          
           // Update our Ego on the road
           int car_lane = car_d / 4;
-          double car_accel = 0.224;
-          if(initialized) {
-            Vehicle prev_car = road.get_vehicle(-1)->second;
-            car_accel = (car_speed - prev_car.v)/0.02;
-          }
           
-          initialized = true;
+          // TODO: Fix this.  Need to make sure Velocity is consistent throughout the app
+          double car_accel = 0.224;
+//          if(initialized) {
+//            Vehicle prev_car = road.get_vehicle(road.ego_key)->second;
+//            cout << "Prev Speed: " << prev_car.v << endl;
+            // This is wrong because the velocity reported does not reflect the true current velocity
+          
+//          }
+//
+//          initialized = true;
           
 //          cout << "Acceleration: " << car_accel << endl;
+          
+          car_accel = (car_speed - prev_speed)/0.02;
           road.update_ego(car_lane, car_s, car_accel, car_speed);
           Vehicle currentv = road.get_vehicle(road.ego_key)->second;
           cout << "Current State: " << currentv.state << " lane: " << currentv.lane << " speed: " << currentv.v << " acc: " << currentv.a << endl;
+          
+          prev_speed = car_speed;
+          
           
           /////////////////////////////////////////////////
           // Update the traffic on the road
@@ -165,43 +176,9 @@ int main() {
             car_s = end_path_s;
           }
           
-//          bool too_close = false;
-//
-//          //find ref_v to use
-//          for(int i = 0; i < sensor_fusion.size(); i++) {
-//            //car is in my lane
-//            float d = sensor_fusion[i][6];
-//            if(d < (2 + 4 * lane +2) && d > (2 + 4*lane - 2)) {
-//              double vx = sensor_fusion[i][3];
-//              double vy = sensor_fusion[i][4];
-//              double check_speed = sqrt(vx*vx+vy*vy);
-//              double check_car_s = sensor_fusion[i][5];
-//
-//              check_car_s += ((double)prev_size*0.02*check_speed); // if using previous points can project s value out
-//              //check s values greater than mine and s gap
-//              if((check_car_s > car_s) && ( (check_car_s - car_s) < 30)) {
-//                // do some logic here, lower reference velocity so we don't crash into the car in front of us,
-//                // could also flag to try to change lanes.
-////                ref_vel = check_speed;
-//                too_close = true;
-//                if(lane > 0) {
-//                  lane = 0;
-//                }
-//
-//              }
-//            }
-//          }
-//
-//          // This works if there are cars or no cars in front of it.  If you're starting from 0 Velocity, it will
-//          // increase slowly.
-//          if(too_close) {
-//            ref_vel -= 0.224;
-//          } else if (ref_vel < 49.5) {
-//            ref_vel += 0.224;
-//          }
-          
           // Increase velocity until we are in range of our target velocity
           if(ref_vel < target.v + 0.5 || ref_vel > target.v - 0.5 ) {
+//            ref_vel += target.a;
             if(ref_vel < target.v - 0.3)
               ref_vel += 0.33;
             if(ref_vel > target.v + 0.3)
@@ -210,7 +187,7 @@ int main() {
             ref_vel = target.v;
           }
           
-          cout << "Ref_Vel: " << ref_vel << " Target V = " << target.v << " Target A = " << target.a << endl;
+//          cout << "Ref_Vel: " << ref_vel << " Target V = " << target.v << " Target A = " << target.a << endl;
           
           if(ref_vel > 49.5) {
             ref_vel = 48;
