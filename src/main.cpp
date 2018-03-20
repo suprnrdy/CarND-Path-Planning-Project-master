@@ -82,6 +82,7 @@ int main() {
         if (event == "telemetry") {
           
           /////////////////////////////////////////////////
+          // SENSOR FUSION DATA
           // Parse JSON data
           // j[1] is the data JSON object
           /////////////////////////////////////////////////
@@ -103,31 +104,19 @@ int main() {
           // Sensor Fusion Data, a list of all other cars on the same side of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
           
-//          vector<double> car_data = {car_x, car_y, car_s, car_d, car_yaw, car_speed};
           
+          /////////////////////////////////////////////////
           // Update our Ego on the road
+          /////////////////////////////////////////////////
           int car_lane = car_d / 4;
           
-          // TODO: Fix this.  Need to make sure Velocity is consistent throughout the app
-          double car_accel = 0.224;
-//          if(initialized) {
-//            Vehicle prev_car = road.get_vehicle(road.ego_key)->second;
-//            cout << "Prev Speed: " << prev_car.v << endl;
-            // This is wrong because the velocity reported does not reflect the true current velocity
-          
-//          }
-//
-//          initialized = true;
-          
-//          cout << "Acceleration: " << car_accel << endl;
-          
-          car_accel = (car_speed - prev_speed)/0.02;
+          double car_accel = (car_speed - prev_speed)/0.02;
           road.update_ego(car_lane, car_s, car_accel, car_speed);
           Vehicle currentv = road.get_vehicle(road.ego_key)->second;
           cout << "Current State: " << currentv.state << " lane: " << currentv.lane << " speed: " << currentv.v << " acc: " << currentv.a << endl;
           
           prev_speed = car_speed;
-          
+        
           
           /////////////////////////////////////////////////
           // Update the traffic on the road
@@ -175,6 +164,11 @@ int main() {
           if(prev_size > 0) {
             car_s = end_path_s;
           }
+          
+          /////////////////////////////////////////////////\
+          // Velocity control
+          // Move this into behavior planning??
+          /////////////////////////////////////////////////
           
           // Increase velocity until we are in range of our target velocity
           if(ref_vel < target.v + 0.5 || ref_vel > target.v - 0.5 ) {

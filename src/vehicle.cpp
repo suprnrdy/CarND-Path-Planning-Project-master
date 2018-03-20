@@ -52,14 +52,17 @@ vector<Vehicle> Vehicle::choose_next_state(map<int, vector<Vehicle>> predictions
   vector<string> final_states;
   vector<vector<Vehicle>> final_trajectories;
   
+//  cout << "Cost: ";
   for (vector<string>::iterator it = states.begin(); it != states.end(); ++it) {
     vector<Vehicle> trajectory = generate_trajectory(*it, predictions);
     if (trajectory.size() != 0) {
       cost = calculate_cost(*this, predictions, trajectory);
       costs.push_back(cost);
       final_trajectories.push_back(trajectory);
+//      cout << " " << it[0] << "= " << cost;
     }
   }
+//  cout << endl;
   
   vector<double>::iterator best_cost = min_element(begin(costs), end(costs));
   int best_idx = distance(begin(costs), best_cost);
@@ -72,24 +75,30 @@ vector<string> Vehicle::successor_states() {
    discussed in the course, with the exception that lane changes happen
    instantaneously, so LCL and LCR can only transition back to KL.
    */
+  
+  // TODO: Add target lane in cost function.  That way we make sure we move into the right state
   vector<string> states;
-  states.push_back("KL");
   string state = this->state;
+  int lane = this->lane;
   if(state.compare("KL") == 0) {
-    states.push_back("PLCL");
-    states.push_back("PLCR");
-  } else if (state.compare("PLCL") == 0) {
-    if (lane != 0) {
+    states.push_back("KL");
+    if(lane > 0)
       states.push_back("PLCL");
-      states.push_back("LCL");
-    }
-  } else if (state.compare("PLCR") == 0) {
-    if (lane != lanes_available - 1) {
+    if(lane < lanes_available - 1)
       states.push_back("PLCR");
-      states.push_back("LCR");
-    }
+  } else if (state.compare("PLCL") == 0) {
+    states.push_back("PLCL");
+    states.push_back("LCL");
+  } else if (state.compare("PLCR") == 0) {
+    states.push_back("PLCR");
+    states.push_back("LCR");
+  } else if (state.compare("LCL") == 0) {
+    states.push_back("KL");
+    states.push_back("LCL");
+  } else if (state.compare("LCR") == 0) {
+    states.push_back("KL");
+    states.push_back("LCR");
   }
-  //If state is "LCL" or "LCR", then just return "KL"
   return states;
 }
 
@@ -110,50 +119,6 @@ vector<Vehicle> Vehicle::generate_trajectory(string state, map<int, vector<Vehic
   }
   return trajectory;
 }
-
-//vector<double> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions, int lane) {
-//  /*
-//   Gets next timestep kinematics (position, velocity, acceleration)
-//   for a given lane. Tries to choose the maximum velocity and acceleration,
-//   given other vehicle positions and accel/velocity constraints.
-//   */
-//  double max_velocity_accel_limit = this->v + this->a * 0.02;
-//  double new_position;
-//  double new_velocity;
-//  double new_accel;
-//  Vehicle vehicle_ahead;
-//  Vehicle vehicle_behind;
-//
-//  if (get_vehicle_ahead(predictions, lane, vehicle_ahead)) {
-//    cout << "Vehicle ahead" << endl;
-//    if (get_vehicle_behind(predictions, lane, vehicle_behind)) {
-//      cout << "Vehicle behind" << endl;
-//      new_velocity = vehicle_ahead.v; //must travel at the speed of traffic, regardless of preferred buffer
-//    } else {
-//      new_velocity = vehicle_ahead.v;
-////      new_velocity = min(min(max_velocity_in_front, max_velocity_accel_limit), this->target_speed);
-//    }
-//  } else {
-//    new_velocity = min(max_velocity_accel_limit, this->target_speed);
-//
-//  }
-//
-//  ////////  Edit this?? The speed is not right.
-//  // Does not slow down behind car.
-//  // Speeds up too fast?  Ttoo much jerK?
-//  //
-//  new_accel = (new_velocity - this->v)*0.02; //Equation: (v_1 - v_0)/t = acceleration
-//  if(new_accel == 0) new_accel = 0.3;
-//  cout << "New Velocity: " << new_velocity << " New Accel:: " << new_accel << endl;
-//  if(new_accel > 10) new_accel = 10;
-//  if(new_accel < -10) new_accel = -10;
-//
-////  cout << "Target Velocity = " << new_velocity << " Acc: " << new_accel << endl;
-//
-//  new_position = this->s + new_velocity + new_accel * 0.02; // We don't do anything with new position (right now)
-//  return{new_position, new_velocity, new_accel};
-//
-//}
 
 vector<double> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions, int lane) {
   /*
@@ -180,7 +145,7 @@ vector<double> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions, in
     new_velocity = min(max_velocity_accel_limit, this->target_speed);
   }
   
-  new_accel = (new_velocity - this->v)/0.02; //Equation: (v_1 - v_0)/t = acceleration
+  new_accel = (new_velocity - this->v)*0.02; //Equation: (v_1 - v_0)/t = acceleration
   new_position = this->s + new_velocity + new_accel * 0.02;
   return{new_position, new_velocity, new_accel};
   
@@ -212,6 +177,7 @@ vector<Vehicle> Vehicle::keep_lane_trajectory(map<int, vector<Vehicle>> predicti
 vector<Vehicle> Vehicle::prep_lane_change_trajectory(string state, map<int, vector<Vehicle>> predictions) {
   /*
    Generate a trajectory preparing for a lane change.
+   
    */
   double new_s;
   double new_v;
@@ -266,10 +232,6 @@ vector<Vehicle> Vehicle::lane_change_trajectory(string state, map<int, vector<Ve
   return trajectory;
 }
 
-double Vehicle::position_at(int t) {
-  return this->s + this->v*t + this->a*t*t/2.0;
-}
-
 bool Vehicle::get_vehicle_behind(map<int, vector<Vehicle>> predictions, int lane, Vehicle & rVehicle) {
   /*
    Returns a true if a vehicle is found behind the current vehicle, false otherwise. The passed reference
@@ -312,6 +274,10 @@ bool Vehicle::get_vehicle_ahead(map<int, vector<Vehicle>> predictions, int lane,
   return found_vehicle;
 }
 
+double Vehicle::position_at(int t) {
+  return this->s + this->v*t + this->a*t*t;
+}
+
 vector<Vehicle> Vehicle::generate_predictions(int horizon) {
   /*
    Generates predictions for non-ego vehicles to be used
@@ -324,7 +290,7 @@ vector<Vehicle> Vehicle::generate_predictions(int horizon) {
     if (i < horizon-1) {
       next_v = (position_at(i+1) - s);
     }
-    predictions.push_back(Vehicle(this->lane, next_s, next_v, a));
+    predictions.push_back(Vehicle(this->lane, next_s, next_v, 0));
   }
   return predictions;
   
@@ -337,10 +303,10 @@ void Vehicle::realize_next_state(vector<Vehicle> trajectory) {
   
   Vehicle next_state = trajectory[1];
   this->state = next_state.state;
-  this->lane = next_state.lane;
-  this->s = next_state.s;
-  this->v = next_state.v;
-  this->a = next_state.a;
+//  this->lane = next_state.lane;
+//  this->s = next_state.s;
+//  this->v = next_state.v;
+//  this->a = next_state.a;
   
 //  cout << ">>> Next State: " << this->state << " lane: " << this->lane << " speed: " << this->v << " acc: " << this->a << endl;
 }

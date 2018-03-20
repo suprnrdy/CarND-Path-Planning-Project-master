@@ -12,24 +12,24 @@
 #include <map>
 #include <math.h>
 
-//const float REACH_GOAL = pow(10, 6);
+const float REACH_GOAL = pow(10, 6);
 const float EFFICIENCY = pow(10, 5);
 
-//
-//float goal_distance_cost(const Vehicle & vehicle, const vector<Vehicle> & trajectory, const map<int, vector<Vehicle>> & predictions, map<string, float> & data) {
-//  /*
-//   Cost increases based on distance of intended lane (for planning a lane change) and final lane of trajectory.
-//   Cost of being out of goal lane also becomes larger as vehicle approaches goal distance.
-//   */
-//  float cost;
-//  float distance = data["distance_to_goal"];
-//  if (distance > 0) {
-//    cost = 1 - 2*exp(-(abs(2.0*vehicle.goal_lane - data["intended_lane"] - data["final_lane"]) / distance));
-//  } else {
-//    cost = 1;
-//  }
-//  return cost;
-//}
+
+float goal_distance_cost(const Vehicle & vehicle, const vector<Vehicle> & trajectory, const map<int, vector<Vehicle>> & predictions, map<string, float> & data) {
+  /*
+   Cost increases based on distance of intended lane (for planning a lane change) and final lane of trajectory.
+   Cost of being out of goal lane also becomes larger as vehicle approaches goal distance.
+   */
+  float cost;
+  float distance = 30;
+  if (distance > 0) {
+    cost = 1 - 2*exp(-(abs(2.0*vehicle.goal_lane - data["intended_lane"] - data["final_lane"]) / distance));
+  } else {
+    cost = 1;
+  }
+  return cost;
+}
 
 float inefficiency_cost(const Vehicle & vehicle, const vector<Vehicle> & trajectory, const map<int, vector<Vehicle>> & predictions, map<string, float> & data) {
   /*
@@ -75,15 +75,15 @@ float calculate_cost(const Vehicle & vehicle, const map<int, vector<Vehicle>> & 
   float cost = 0.0;
   
   //Add additional cost functions here.
-//  vector< function<float(const Vehicle & , const vector<Vehicle> &, const map<int, vector<Vehicle>> &, map<string, float> &)>> cf_list = {goal_distance_cost, inefficiency_cost};
-//  vector<float> weight_list = {REACH_GOAL, EFFICIENCY};
-//
-//  for (int i = 0; i < cf_list.size(); i++) {
-//    float new_cost = weight_list[i]*cf_list[i](vehicle, trajectory, predictions, trajectory_data);
-//    cost += new_cost;
-//  }
+  vector< function<float(const Vehicle & , const vector<Vehicle> &, const map<int, vector<Vehicle>> &, map<string, float> &)>> cf_list = {goal_distance_cost, inefficiency_cost};
+  vector<float> weight_list = {REACH_GOAL, EFFICIENCY};
+
+  for (int i = 0; i < cf_list.size(); i++) {
+    float new_cost = weight_list[i]*cf_list[i](vehicle, trajectory, predictions, trajectory_data);
+    cost += new_cost;
+  }
   
-  cost = inefficiency_cost(vehicle, trajectory, predictions, trajectory_data);
+//  cost = inefficiency_cost(vehicle, trajectory, predictions, trajectory_data);
   return cost;
   
 }
@@ -103,9 +103,9 @@ map<string, float> get_helper_data(const Vehicle & vehicle, const vector<Vehicle
   float intended_lane;
   
   if (trajectory_last.state.compare("PLCL") == 0) {
-    intended_lane = trajectory_last.lane + 1;
-  } else if (trajectory_last.state.compare("PLCR") == 0) {
     intended_lane = trajectory_last.lane - 1;
+  } else if (trajectory_last.state.compare("PLCR") == 0) {
+    intended_lane = trajectory_last.lane + 1;
   } else {
     intended_lane = trajectory_last.lane;
   }

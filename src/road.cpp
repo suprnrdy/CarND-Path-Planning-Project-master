@@ -77,7 +77,7 @@ Vehicle Road::update() {
   {
     int v_id = it->first;
     if(v_id != ego_key) {
-      vector<Vehicle> preds = it->second.generate_predictions(50);
+      vector<Vehicle> preds = it->second.generate_predictions(1);
       predictions[v_id] = preds;
     }
     it++;
