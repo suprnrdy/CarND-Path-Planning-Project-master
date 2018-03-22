@@ -113,28 +113,32 @@ int main() {
           double car_accel = (car_speed - prev_speed)/0.02;
           road.update_ego(car_lane, car_s, car_accel, car_speed);
           Vehicle currentv = road.get_vehicle(road.ego_key)->second;
-          cout << "Current State: " << currentv.state << " lane: " << currentv.lane << " speed: " << currentv.v << " acc: " << currentv.a << endl;
+//          cout << "Current State: " << currentv.state << " lane: " << currentv.lane << " speed: " << currentv.v << " acc: " << currentv.a << endl;
           
           prev_speed = car_speed;
         
           
           /////////////////////////////////////////////////
           // Update the traffic on the road
+          // [  0, 1, 2,  3,  4, 5, 6]
           // [ id, x, y, vx, vy, s, d]
           /////////////////////////////////////////////////
           
           map<int, Vehicle> past_vehicles = road.get_vehicles();
           
+          int v_lane_count = 0;
           //Go through each vehicle, derive V and A, then update the Road
+          road.clear_traffic();
           for(int i = 0; i < sensor_fusion.size(); i++) {
             int vd = sensor_fusion[i][6];
             // If the obstacles are all in the same side of the road as us
             if(vd >= 0) {
+              v_lane_count++;
               int vid = sensor_fusion[i][0];
               double vs = sensor_fusion[i][5];
               double vx = sensor_fusion[i][3];
               double vy = sensor_fusion[i][4];
-              double vspeed = sqrt(vx*vx+vy*vy);
+              double vspeed = sqrt(vx*vx+vy*vy)*2.23;
               int vlane = vd / 4;
               // check if vehicle ID exists in list.
               // if it does: calculate Acceleration and update it.
@@ -144,7 +148,7 @@ int main() {
               if(iter != past_vehicles.end()) {
                 // Vehicle exists, update it.
                 // Calculate Acceleration
-                vaccel = (vspeed - iter->second.v)/0.02; //Calculates acceleration = difference in speed over a span of 20 mSeconds
+                vaccel = (vspeed - iter->second.v)*0.02; //Calculates acceleration = difference in speed over a span of 20 mSeconds
               }
               Vehicle v = Vehicle(vlane, vs, vspeed, vaccel);
               road.update_traffic(vid, v);
@@ -158,6 +162,8 @@ int main() {
           // from the road update() function we get back the next ideal state
           // Which we can then pull the target lane, velocity and acceleration from.
           Vehicle target = road.update();
+          
+//          cout << ">>> Next State: " << target.state << " lane: " << target.lane << " speed: " << target.v << endl;
           
           int prev_size = previous_path_x.size();
           
@@ -181,7 +187,7 @@ int main() {
             ref_vel = target.v;
           }
           
-//          cout << "Ref_Vel: " << ref_vel << " Target V = " << target.v << " Target A = " << target.a << endl;
+          cout << "    Ref_Vel: " << ref_vel << " Target V = " << target.v << endl;
           
           if(ref_vel > 49.5) {
             ref_vel = 48;

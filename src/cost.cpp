@@ -14,7 +14,44 @@
 
 const float REACH_GOAL = pow(10, 6);
 const float EFFICIENCY = pow(10, 5);
+const float CHANGING_LANE = pow(10, 4);
 
+///////////
+// TODO:
+// 1) Add cost for lane changes.
+
+
+
+//float on_road_cost(const Vehicle & vehicle, const vector<Vehicle> & trajectory, const map<int, vector<Vehicle>> & predictions, map<string, float> & data) {
+//  /*
+//   Cost increases based on distance of intended lane (for planning a lane change) and final lane of trajectory.
+//   Cost of being out of goal lane also becomes larger as vehicle approaches goal distance.
+//   */
+//  float cost = 0;
+//  if(vehi)
+//  return cost;
+//}
+
+float calculate_cost(const Vehicle & vehicle, const map<int, vector<Vehicle>> & predictions, const vector<Vehicle> & trajectory) {
+  /*
+   Sum weighted cost functions to get total cost for trajectory.
+   */
+  map<string, float> trajectory_data = get_helper_data(vehicle, trajectory, predictions);
+  float cost = 0.0;
+  
+  //Add additional cost functions here.
+    vector< function<float(const Vehicle & , const vector<Vehicle> &, const map<int, vector<Vehicle>> &, map<string, float> &)>> cf_list = {changing_lane_cost, inefficiency_cost};
+    vector<float> weight_list = {CHANGING_LANE, EFFICIENCY};
+  
+    for (int i = 0; i < cf_list.size(); i++) {
+      float new_cost = weight_list[i]*cf_list[i](vehicle, trajectory, predictions, trajectory_data);
+      cost += new_cost;
+    }
+  
+//  cost = inefficiency_cost(vehicle, trajectory, predictions, trajectory_data);
+  return cost;
+  
+}
 
 float goal_distance_cost(const Vehicle & vehicle, const vector<Vehicle> & trajectory, const map<int, vector<Vehicle>> & predictions, map<string, float> & data) {
   /*
@@ -25,9 +62,24 @@ float goal_distance_cost(const Vehicle & vehicle, const vector<Vehicle> & trajec
   float distance = 30;
   if (distance > 0) {
     cost = 1 - 2*exp(-(abs(2.0*vehicle.goal_lane - data["intended_lane"] - data["final_lane"]) / distance));
+//    cost =
   } else {
     cost = 1;
   }
+  return cost;
+}
+
+float changing_lane_cost(const Vehicle & vehicle, const vector<Vehicle> & trajectory, const map<int, vector<Vehicle>> & predictions, map<string, float> & data) {
+  /*
+   Penalize lane changes.  This helps keep the car in a single lane without swerving too much.
+   */
+  float cost = 0.0;
+  if(data["intended_lane"] == data["final_lane"]) {
+    cost = 0;
+  } else {
+    cost = 0;
+  }
+  
   return cost;
 }
 
@@ -45,6 +97,8 @@ float inefficiency_cost(const Vehicle & vehicle, const vector<Vehicle> & traject
   if (proposed_speed_final < 0) {
     proposed_speed_final = vehicle.target_speed;
   }
+  
+//  cout << endl <<  " ::: proposed speed: " << proposed_speed_intended;
   
   float cost = (2.0*vehicle.target_speed - proposed_speed_intended - proposed_speed_final)/vehicle.target_speed;
   
@@ -65,27 +119,6 @@ float lane_speed(const map<int, vector<Vehicle>> & predictions, int lane) {
   }
   //Found no vehicle in the lane
   return -1.0;
-}
-
-float calculate_cost(const Vehicle & vehicle, const map<int, vector<Vehicle>> & predictions, const vector<Vehicle> & trajectory) {
-  /*
-   Sum weighted cost functions to get total cost for trajectory.
-   */
-  map<string, float> trajectory_data = get_helper_data(vehicle, trajectory, predictions);
-  float cost = 0.0;
-  
-  //Add additional cost functions here.
-  vector< function<float(const Vehicle & , const vector<Vehicle> &, const map<int, vector<Vehicle>> &, map<string, float> &)>> cf_list = {goal_distance_cost, inefficiency_cost};
-  vector<float> weight_list = {REACH_GOAL, EFFICIENCY};
-
-  for (int i = 0; i < cf_list.size(); i++) {
-    float new_cost = weight_list[i]*cf_list[i](vehicle, trajectory, predictions, trajectory_data);
-    cost += new_cost;
-  }
-  
-//  cost = inefficiency_cost(vehicle, trajectory, predictions, trajectory_data);
-  return cost;
-  
 }
 
 map<string, float> get_helper_data(const Vehicle & vehicle, const vector<Vehicle> & trajectory, const map<int, vector<Vehicle>> & predictions) {

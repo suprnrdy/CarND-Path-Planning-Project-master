@@ -35,23 +35,15 @@ map<int, Vehicle>::const_iterator Road::get_vehicle(int id) {
 }
 
 void Road::clear_traffic() {
+  Vehicle ego = get_vehicle(ego_key)->second;
   this->vehicles.clear();
+  this->vehicles.insert(std::pair<int,Vehicle>(ego_key,ego));
   this->vehicles_added = 0;
 }
 
 // Function to add cars detected by sensor fusion to our road
 void Road::update_traffic(int id, Vehicle car) {
-  map<int, Vehicle>::iterator iter = this->vehicles.find(id);
-  if(iter == this->vehicles.end()) {
-    car.state = "CS";
-    this->vehicles_added += 1;
-    this->vehicles.insert(std::pair<int,Vehicle>(id,car));
-  } else {
-    iter->second.a = car.a;
-    iter->second.s = car.s;
-    iter->second.lane = car.lane;
-    iter->second.v = car.v;
-  }
+  this->vehicles.insert(std::pair<int,Vehicle>(id,car));
 }
 
 void Road::add_ego(int lane_num, double s, vector<int> config_data) {
@@ -77,11 +69,13 @@ Vehicle Road::update() {
   {
     int v_id = it->first;
     if(v_id != ego_key) {
-      vector<Vehicle> preds = it->second.generate_predictions(1);
+      vector<Vehicle> preds = it->second.generate_predictions(2);
       predictions[v_id] = preds;
+//      cout << v_id << " Speed: " << preds[0].v << endl;
     }
     it++;
   }
+
   // Generate Trajectory, or return next position for trajectory
   
   it = this->vehicles.find(ego_key);
