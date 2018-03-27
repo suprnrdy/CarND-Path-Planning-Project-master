@@ -48,11 +48,12 @@ public:
   void clear_traffic();
   
   Vehicle update();
+  void realize_next_state();
   
   void add_ego(int lane_num, double s, vector<int> config_data);
   void update_ego(int lane_num, double s, double a, double v);
-  
-  void cull();
+  void update_ego_state(string new_state);
+  bool check_lane_clear(int lane);
   
 };
 

@@ -60,6 +60,10 @@ void Road::update_ego(int lane_num, double s, double a, double v) {
   this->vehicles.find(this->ego_key)->second.a = a;
 }
 
+void Road::update_ego_state(string new_state) {
+  this->vehicles.find(this->ego_key)->second.state = new_state;
+}
+
 Vehicle Road::update() {
   // Generate Predictions
   map<int ,vector<Vehicle> > predictions;
@@ -77,13 +81,35 @@ Vehicle Road::update() {
   }
 
   // Generate Trajectory, or return next position for trajectory
-  
   it = this->vehicles.find(ego_key);
   vector<Vehicle> trajectory = it->second.choose_next_state(predictions);
-  it->second.realize_next_state(trajectory);
   return trajectory[1];
 }
 
+bool Road::check_lane_clear(int lane) {
+  map<int ,vector<Vehicle> > predictions;
+  
+  Vehicle ego = get_vehicle(ego_key)->second;
+  
+  map<int, Vehicle>::iterator it = this->vehicles.begin();
+  while(it != this->vehicles.end())
+  {
+    int v_id = it->first;
+    if(v_id != ego_key) {
+      if(it->second.lane == lane) {
+        vector<Vehicle> preds = it->second.generate_predictions(2);
+        if(preds[0].s > ego.s - 8 && preds[0].s < ego.s + 8) {
+          return false;
+        }
+        if(preds[1].s > ego.s - 8 && preds[1].s < ego.s + 8) {
+          return false;
+        }
+      }
+    }
+    it++;
+  }
+  return true;
+}
 
 
 

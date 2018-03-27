@@ -163,7 +163,7 @@ int main() {
           // Which we can then pull the target lane, velocity and acceleration from.
           Vehicle target = road.update();
           
-//          cout << ">>> Next State: " << target.state << " lane: " << target.lane << " speed: " << target.v << endl;
+          cout << ">>> Next State: " << target.state << " lane: " << target.lane << " speed: " << target.v << endl << endl;
           
           int prev_size = previous_path_x.size();
           
@@ -177,23 +177,35 @@ int main() {
           /////////////////////////////////////////////////
           
           // Increase velocity until we are in range of our target velocity
-          if(ref_vel < target.v + 0.5 || ref_vel > target.v - 0.5 ) {
-//            ref_vel += target.a;
-            if(ref_vel < target.v - 0.3)
-              ref_vel += 0.33;
-            if(ref_vel > target.v + 0.3)
-              ref_vel -= 0.224;
-          } else {
-            ref_vel = target.v;
-          }
+
+//          if(ref_vel < target.v + 0.5 || ref_vel > target.v - 0.5 ) {
+//            if(ref_vel < target.v - 0.3)
+//              ref_vel += 0.33;
+//            if(ref_vel > target.v + 0.3)
+//              ref_vel -= 0.224;
+//          } else {
+//            ref_vel = target.v;
+//          }
           
-          cout << "    Ref_Vel: " << ref_vel << " Target V = " << target.v << endl;
+          ref_vel += target.a;
+          
+//          cout << "    Ref_Vel: " << ref_vel << " Target V = " << target.v << endl;
           
           if(ref_vel > 49.5) {
             ref_vel = 48;
           }
           
-          lane = target.lane;
+          // Check if any cars are next to us within a certain buffer before allowing a lane change.
+          // If state is LCR or LCL, check if cars in left or right of us
+          // else change to next lane and update state.
+          if(target.state.compare("LCL") == 0 || target.state.compare("LCR") == 0) {
+            if(road.check_lane_clear(target.lane)) {
+              lane = target.lane;
+              road.update_ego_state(target.state);
+            }
+          } else {
+            road.update_ego_state(target.state);
+          }
           
           // Create a list of widely spaced (x,y) waypoints, evenly spaced at 30m
           // Later we will interpolate them with a spilne and fill in the gaps
@@ -304,16 +316,7 @@ int main() {
           
           json msgJson;
 
-//          double dist_inc = 0.5;  //0.5m
-//          for(int i = 0; i < 50; i++) {
-//            double next_s = car_s + (i + 1)*dist_inc;
-//            double next_d = 6;
-//            vector<double> nextXY = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-//            next_x_vals.push_back(nextXY[0]);
-//            next_y_vals.push_back(nextXY[1]);
-//          }
-
-          	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+          	// define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           	msgJson["next_x"] = next_x_vals;
           	msgJson["next_y"] = next_y_vals;
 
