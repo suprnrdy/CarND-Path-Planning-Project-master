@@ -141,8 +141,8 @@ int main() {
               double vspeed = sqrt(vx*vx+vy*vy)*2.23;
               int vlane = vd / 4;
               // check if vehicle ID exists in list.
-              // if it does: calculate Acceleration and update it.
-              // if it does not: update function will automatically add it.
+              // if it does: calculate acceleration and update it.
+              // if not set acceleration to zero
               double vaccel = 0;
               map<int, Vehicle>::iterator iter = past_vehicles.find(vid);
               if(iter != past_vehicles.end()) {
@@ -156,48 +156,33 @@ int main() {
           }
           
           /////////////////////////////////////////////////
-          // Trajectory Planning
+          // Behavior Planning
           /////////////////////////////////////////////////
-          
           // from the road update() function we get back the next ideal state
           // Which we can then pull the target lane, velocity and acceleration from.
           Vehicle target = road.update();
           
           cout << ">>> Next State: " << target.state << " lane: " << target.lane << " speed: " << target.v << endl << endl;
           
+          /////////////////////////////////////////////////
+          // Trajectory Planning
+          /////////////////////////////////////////////////
+          
           int prev_size = previous_path_x.size();
           
           if(prev_size > 0) {
             car_s = end_path_s;
           }
-          
-          /////////////////////////////////////////////////\
-          // Velocity control
-          // Move this into behavior planning??
-          /////////////////////////////////////////////////
-          
-          // Increase velocity until we are in range of our target velocity
 
-//          if(ref_vel < target.v + 0.5 || ref_vel > target.v - 0.5 ) {
-//            if(ref_vel < target.v - 0.3)
-//              ref_vel += 0.33;
-//            if(ref_vel > target.v + 0.3)
-//              ref_vel -= 0.224;
-//          } else {
-//            ref_vel = target.v;
-//          }
-          
+          // Increase/decrease velocity until we are in range of our target velocity
           ref_vel += target.a;
           
-//          cout << "    Ref_Vel: " << ref_vel << " Target V = " << target.v << endl;
-          
+          // Make sure we never go faster than the speed limit
           if(ref_vel > 49.5) {
             ref_vel = 48;
           }
           
           // Check if any cars are next to us within a certain buffer before allowing a lane change.
-          // If state is LCR or LCL, check if cars in left or right of us
-          // else change to next lane and update state.
           if(target.state.compare("LCL") == 0 || target.state.compare("LCR") == 0) {
             if(road.check_lane_clear(target.lane)) {
               lane = target.lane;

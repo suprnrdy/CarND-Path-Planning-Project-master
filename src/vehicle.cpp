@@ -179,14 +179,6 @@ vector<Vehicle> Vehicle::keep_lane_trajectory(map<int, vector<Vehicle>> predicti
 vector<Vehicle> Vehicle::prep_lane_change_trajectory(string state, map<int, vector<Vehicle>> predictions) {
   /*
    Generate a trajectory preparing for a lane change.
-   
-   - Car in front is slower than car(s) in left or right lane
-   - What if we are moving faster than car in left lane or if there is a gap?
-   
-   
-   */
-  /*
-   Generate a trajectory preparing for a lane change.
    */
   double new_s;
   double new_v;

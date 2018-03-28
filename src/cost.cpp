@@ -16,22 +16,6 @@ const double REACH_GOAL = pow(10, 6);
 const double EFFICIENCY = pow(10, 5);
 const double CHANGING_LANE = pow(10, 1);
 
-///////////
-// TODO:
-// 1) Add cost for lane changes.
-
-
-
-
-//double on_road_cost(const Vehicle & vehicle, const vector<Vehicle> & trajectory, const map<int, vector<Vehicle>> & predictions, map<string, double> & data) {
-//  /*
-//   Cost increases based on distance of intended lane (for planning a lane change) and final lane of trajectory.
-//   Cost of being out of goal lane also becomes larger as vehicle approaches goal distance.
-//   */
-//  double cost = 0;
-//  if(vehi)
-//  return cost;
-//}
 
 double calculate_cost(const Vehicle & vehicle, const map<int, vector<Vehicle>> & predictions, const vector<Vehicle> & trajectory) {
   /*
@@ -39,15 +23,6 @@ double calculate_cost(const Vehicle & vehicle, const map<int, vector<Vehicle>> &
    */
   map<string, double> trajectory_data = get_helper_data(vehicle, trajectory, predictions);
   double cost = 0.0;
-  
-  //Add additional cost functions here.
-//    vector< function<double(const Vehicle & , const vector<Vehicle> &, const map<int, vector<Vehicle>> &, map<string, double> &)>> cf_list = {changing_lane_cost, inefficiency_cost};
-//    vector<double> weight_list = {CHANGING_LANE, EFFICIENCY};
-//
-//    for (int i = 0; i < cf_list.size(); i++) {
-//      double new_cost = weight_list[i]*cf_list[i](vehicle, trajectory, predictions, trajectory_data);
-//      cost += new_cost;
-//    }
   
   cost = inefficiency_cost(vehicle, trajectory, predictions, trajectory_data);
   return cost;
@@ -112,8 +87,7 @@ double inefficiency_cost(const Vehicle & vehicle, const vector<Vehicle> & trajec
 
 vector<double> lane_speed(const Vehicle & vehicle, const map<int, vector<Vehicle>> & predictions, int lane) {
   /*
-   All non ego vehicles in a lane have the same speed, so to get the speed limit for a lane,
-   we can just find one vehicle in that lane.
+   Check for speed of closest vehicle ahead of us, set that as lane speed.
    */
   vector<double> lane_speed;
   double distance_front = 99999999;
@@ -135,8 +109,6 @@ vector<double> lane_speed(const Vehicle & vehicle, const map<int, vector<Vehicle
   lane_speed.push_back(speed);
   lane_speed.push_back(distance_front);
   return lane_speed;
-  //Found no vehicle in the lane
-//  return -1.0;
 }
 
 map<string, double> get_helper_data(const Vehicle & vehicle, const vector<Vehicle> & trajectory, const map<int, vector<Vehicle>> & predictions) {
